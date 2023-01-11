@@ -22,9 +22,9 @@
  */
 
 // Set these OTAA parameters to match your app/node in TTN
-static uint8_t devEui[] = {0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x05, 0x7F, 0x2B};
-static uint8_t appEui[] = {0x13, 0x37, 0x42, 0x06, 0x90, 0x00, 0x00, 0x00};
-static uint8_t appKey[] = {0xB4, 0xF4, 0x1F, 0x53, 0xA3, 0x2C, 0x0D, 0x4E, 0x37, 0x0B, 0xD5, 0x50, 0x98, 0x42, 0x19, 0xE6};
+static uint8_t devEui[] = {0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x05, 0x87, 0x16};
+static uint8_t appEui[] = {0x01, 0x30, 0x37, 0x04, 0x20, 0x06, 0x09, 0x00};
+static uint8_t appKey[] = {0x36, 0xC5, 0x38, 0x6B, 0x8A, 0xC7, 0xDF, 0x10, 0x18, 0x3B, 0xB1, 0x83, 0xC4, 0x6E, 0xAA, 0xAB};
 
 uint16_t userChannelsMask[6] = {0x00FF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000};
 
@@ -67,7 +67,7 @@ void setup()
 
   // Enable ADR
   LoRaWAN.setAdaptiveDR(true);
-
+  
   while (1)
   {
     Serial.print("Joining... ");
@@ -85,33 +85,27 @@ void setup()
       break;
     }
   }
+  
+  pinMode(GPIO1, INPUT_PULLUP);
 }
 
 ///////////////////////////////////////////////////
 void loop()
 {
+  Serial.println("...Checking button...");
+  char msg[] = "Button pressed.";
 
-  // In this demo we use a timer to go into low power mode to kill some time.
-  // You might be collecting data or doing something more interesting instead.
-  lowPowerSleep(15000);
-
-  // Here we send confirmed packed (ACK requested) only for the first five (remember there is a fair use policy)
   bool requestack = false;
 
-  // Send hello world
-  char msg[] = "Hello World";
-
-  Serial.print("Sending: ");
-  Serial.println(msg);
-
-  // Send the message
-  if (LoRaWAN.send(sizeof(msg) - 1, (uint8_t *)msg, 1, requestack) == 0)
-  {
-    Serial.println("SENT");
-  }
-  else
-  {
-    Serial.println("SEND FAILED");
+  if (digitalRead(GPIO1) == LOW) {
+  
+    // Send the message
+    if (LoRaWAN.send(sizeof(msg) - 1, (uint8_t *)msg, 1, requestack) == true) {
+      Serial.println("\nSENT");
+    } else {
+      Serial.println("\nSEND FAILED");
+    }
+    delay(2000);
   }
 }
 
