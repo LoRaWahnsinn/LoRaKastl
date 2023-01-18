@@ -22,34 +22,35 @@
  */
 
 // Set these OTAA parameters to match your app/node in TTN
-static uint8_t devEui[] = {0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x05, 0x7F, 0x2B};
-static uint8_t appEui[] = {0x13, 0x37, 0x42, 0x06, 0x90, 0x00, 0x00, 0x00};
-static uint8_t appKey[] = {0xB4, 0xF4, 0x1F, 0x53, 0xA3, 0x2C, 0x0D, 0x4E, 0x37, 0x0B, 0xD5, 0x50, 0x98, 0x42, 0x19, 0xE6};
+static uint8_t devEui[] = {0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x05, 0x95, 0x43};
+static uint8_t appEui[] = {0x00, 0x10, 0x30, 0x03, 0x70, 0x04, 0x02, 0x00};
+static uint8_t appKey[] = {0x71, 0xD6, 0x86, 0x16, 0xA0, 0xB5, 0x5F, 0x63, 0x77, 0x35, 0xD1, 0x4A, 0x0F, 0xFA, 0xD6, 0x2B};
 
 uint16_t userChannelsMask[6] = {0x00FF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000};
 
 ///////////////////////////////////////////////////
-// Some utilities for going into low power mode
-TimerEvent_t sleepTimer;
-// Records whether our sleep/low power timer expired
-bool sleepTimerExpired;
 
-static void wakeUp()
-{
-  sleepTimerExpired = true;
+
+#define timetillsleep 5000
+static TimerEvent_t sleep;
+uint8_t lowpower = 1;
+
+void onSleep() {
+    Serial.printf("Going into lowpower mode. Press user key to wake up\r\n");
+    delay(5);
+    lowpower = 1;
 }
 
-static void lowPowerSleep(uint32_t sleeptime)
-{
-  sleepTimerExpired = false;
-  TimerInit(&sleepTimer, &wakeUp);
-  TimerSetValue(&sleepTimer, sleeptime);
-  TimerStart(&sleepTimer);
-  // Low power handler also gets interrupted by other timers
-  // So wait until our timer had expired
-  while (!sleepTimerExpired)
-    lowPowerHandler();
-  TimerStop(&sleepTimer);
+void onWakeUp() {
+    delay(10);
+    if (digitalRead(GPIO1) == HIGH) {
+        Serial.printf("Woke up by GPIO, %d ms later into lowpower mode.\r\n",
+                      timetillsleep);
+        lowpower = 0;
+        // timetillsleep ms later into lowpower mode;
+        TimerSetValue(&sleep, timetillsleep);
+        TimerStart(&sleep);
+    }
 }
 
 ///////////////////////////////////////////////////
@@ -77,7 +78,6 @@ void setup()
       // In this example we just loop until we're joined, but you could
       // also go and start doing other things and try again later
       Serial.println("JOIN FAILED! Sleeping for 30 seconds");
-      lowPowerSleep(30000);
     }
     else
     {
@@ -85,15 +85,22 @@ void setup()
       break;
     }
   }
+
+  pinMode(GPIO1, INPUT_PULLUP);
+
+  attachInterrupt(GPIO1, onWakeUp, RISING);
+
+  TimerInit(&sleep, onSleep);
+  Serial.printf("Going into lowpower mode. Press user key to wake up\r\n");
+  delay(5);
 }
 
 ///////////////////////////////////////////////////
 void loop()
 {
-
-  // In this demo we use a timer to go into low power mode to kill some time.
-  // You might be collecting data or doing something more interesting instead.
-  lowPowerSleep(15000);
+  if (lowpower) {
+    lowPowerHandler();
+  }
 
   // Here we send confirmed packed (ACK requested) only for the first five (remember there is a fair use policy)
   bool requestack = false;
@@ -113,16 +120,4 @@ void loop()
   {
     Serial.println("SEND FAILED");
   }
-}
-
-///////////////////////////////////////////////////
-// Example of handling downlink data
-void downLinkDataHandle(McpsIndication_t *mcpsIndication)
-{
-  Serial.printf("Received downlink: %s, RXSIZE %d, PORT %d, DATA: ", mcpsIndication->RxSlot ? "RXWIN2" : "RXWIN1", mcpsIndication->BufferSize, mcpsIndication->Port);
-  for (uint8_t i = 0; i < mcpsIndication->BufferSize; i++)
-  {
-    Serial.printf("%02X", mcpsIndication->Buffer[i]);
-  }
-  Serial.println();
 }
