@@ -31,26 +31,25 @@ uint16_t userChannelsMask[6] = {0x00FF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000};
 ///////////////////////////////////////////////////
 
 
-#define timetillsleep 5000
+#define timetillsleep 10000
 static TimerEvent_t sleep;
 uint8_t lowpower = 1;
 
 void onSleep() {
-    Serial.printf("Going into lowpower mode. Press user key to wake up\r\n");
+    Serial.println("Interrupt!");
     delay(5);
     lowpower = 1;
 }
 
 void onWakeUp() {
-    delay(10);
-    if (digitalRead(GPIO1) == HIGH) {
-        Serial.printf("Woke up by GPIO, %d ms later into lowpower mode.\r\n",
-                      timetillsleep);
-        lowpower = 0;
-        // timetillsleep ms later into lowpower mode;
-        TimerSetValue(&sleep, timetillsleep);
-        TimerStart(&sleep);
-    }
+    //delay(10);
+    //if (digitalRead(GPIO1) == HIGH) {
+    Serial.println("Woke up by GPIO");
+    lowpower = 0;
+    // timetillsleep ms later into lowpower mode;
+    // TimerSetValue(&sleep, timetillsleep);
+    // TimerStart(&sleep);
+    //}
 }
 
 ///////////////////////////////////////////////////
@@ -71,17 +70,17 @@ void setup()
 
   while (1)
   {
-    Serial.print("Joining... ");
+    Serial.print("Joining... \n");
     LoRaWAN.joinOTAA(appEui, appKey, devEui);
     if (!LoRaWAN.isJoined())
     {
       // In this example we just loop until we're joined, but you could
       // also go and start doing other things and try again later
-      Serial.println("JOIN FAILED! Sleeping for 30 seconds");
+      Serial.println("JOIN FAILED! Sleeping for 30 seconds \n");
     }
     else
     {
-      Serial.println("JOINED");
+      Serial.println("JOINED.");
       break;
     }
   }
@@ -91,14 +90,13 @@ void setup()
   attachInterrupt(GPIO1, onWakeUp, RISING);
 
   TimerInit(&sleep, onSleep);
-  Serial.printf("Going into lowpower mode. Press user key to wake up\r\n");
-  delay(5);
 }
 
 ///////////////////////////////////////////////////
 void loop()
 {
   if (lowpower) {
+    Serial.println("Going into lowpower mode. Press user key to wake up.");
     lowPowerHandler();
   }
 
@@ -108,8 +106,7 @@ void loop()
   // Send hello world
   char msg[] = "Hello World";
 
-  Serial.print("Sending: ");
-  Serial.println(msg);
+  Serial.println("Sending");
 
   // Send the message
   if (LoRaWAN.send(sizeof(msg) - 1, (uint8_t *)msg, 1, requestack) == 0)
@@ -120,4 +117,7 @@ void loop()
   {
     Serial.println("SEND FAILED");
   }
+
+  delay(5000);
+  lowpower = 1;
 }
