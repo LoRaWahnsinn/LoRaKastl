@@ -1,16 +1,15 @@
 /**
- * This is an example of joining, sending and receiving data via LoRaWAN using a more minimal interface.
+ * @file main.cpp
+ * @author Team LoRaWahnsinn
+ * @brief The source code for the Heltec CubeCell AB01 microcontroller
  *
- * The example is configured for OTAA, set your keys into the variables below.
+ * @copyright Copyright Team LoRaWahnsinn (c) 2023
  *
- * The example will upload a counter value periodically, and will print any downlink messages.
- *
- * please disable AT_SUPPORT in tools menu
- *
- * David Brodrick.
  */
+
 #include "LoRaWanMinimal_APP.h"
 #include "Arduino.h"
+#define timetillsleep 10000
 
 /*
  * set LoraWan_RGB to Active,the RGB active in loraWan
@@ -21,51 +20,37 @@
  * RGB green means received done;
  */
 
-// Set these OTAA parameters to match your app/node in TTN
-static uint8_t devEui[] = {0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x05, 0x95, 0x43};
-static uint8_t appEui[] = {0x00, 0x10, 0x30, 0x03, 0x70, 0x04, 0x02, 0x00};
-static uint8_t appKey[] = {0x71, 0xD6, 0x86, 0x16, 0xA0, 0xB5, 0x5F, 0x63, 0x77, 0x35, 0xD1, 0x4A, 0x0F, 0xFA, 0xD6, 0x2B};
+// OTAA (Over the air activation) parameters matching the device registered at TTN
+static uint8_t devEui[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static uint8_t appEui[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static uint8_t appKey[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 uint16_t userChannelsMask[6] = {0x00FF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000};
 
-///////////////////////////////////////////////////
-
-
-#define timetillsleep 10000
 static TimerEvent_t sleep;
 uint8_t lowpower = 1;
 
-void onSleep() {
-    Serial.println("Interrupt!");
-    delay(5);
-    lowpower = 1;
+void onSleep()
+{
+  Serial.println("Interrupt!");
+  delay(5);
+  lowpower = 1;
 }
 
-void onWakeUp() {
-    //delay(10);
-    //if (digitalRead(GPIO1) == HIGH) {
-    Serial.println("Woke up by GPIO");
-    lowpower = 0;
-    // timetillsleep ms later into lowpower mode;
-    // TimerSetValue(&sleep, timetillsleep);
-    // TimerStart(&sleep);
-    //}
+void onWakeUp()
+{
+  Serial.println("Woke up by GPIO");
+  lowpower = 0;
 }
 
-///////////////////////////////////////////////////
+
 void setup()
 {
   Serial.begin(9600);
 
-  if (ACTIVE_REGION == LORAMAC_REGION_AU915)
-  {
-    // TTN uses sub-band 2 in AU915
-    LoRaWAN.setSubBand2();
-  }
-
   LoRaWAN.begin(LORAWAN_CLASS, ACTIVE_REGION);
 
-  // Enable ADR
+  // Enable Adaptive Data Rate
   LoRaWAN.setAdaptiveDR(true);
 
   while (1)
@@ -74,9 +59,7 @@ void setup()
     LoRaWAN.joinOTAA(appEui, appKey, devEui);
     if (!LoRaWAN.isJoined())
     {
-      // In this example we just loop until we're joined, but you could
-      // also go and start doing other things and try again later
-      Serial.println("JOIN FAILED! Sleeping for 30 seconds \n");
+      Serial.println("JOIN FAILED!\n");
     }
     else
     {
@@ -92,19 +75,20 @@ void setup()
   TimerInit(&sleep, onSleep);
 }
 
-///////////////////////////////////////////////////
+
 void loop()
 {
-  if (lowpower) {
+  if (lowpower)
+  {
     Serial.println("Going into lowpower mode. Press user key to wake up.");
     lowPowerHandler();
   }
 
-  // Here we send confirmed packed (ACK requested) only for the first five (remember there is a fair use policy)
+  // We don't request confirmation packets
   bool requestack = false;
 
-  // Send hello world
-  char msg[] = "Hello World";
+  // Set message
+  char msg[] = "Check mail";
 
   Serial.println("Sending");
 
