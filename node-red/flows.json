@@ -11,7 +11,7 @@
     "type": "mqtt in",
     "z": "49cc589198ea327c",
     "name": "TTN Endpoint",
-    "topic": "v3/lorakastl@ttn/devices/eui-<your-eui-here>/up",
+    "topic": "v3/<your-username-here>/devices/eui-<your-eui-here>/up",
     "qos": "2",
     "datatype": "auto-detect",
     "broker": "2751bd04e41bc1ca",
